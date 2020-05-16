@@ -1,0 +1,12 @@
+module decoder(instr_out,control_signal);
+input [31:0] instr_out;
+output reg [13:0] control_signal;
+
+always @(instr_out) begin
+case (instr_out[6:0])
+	7'b0110011:begin
+		control_signal=
+
+
+
+endmodule

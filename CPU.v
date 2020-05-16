@@ -1,0 +1,262 @@
+// Please include verilog file if you write module in other file
+`timescale 1ns/10ps
+`define cycle 10.0 // Cycle time
+`include"adder.v"
+`include"alu.v"
+`include"decoder.v"
+`include"immgen.v"
+`include"mux21.v"
+`include"mux41.v"
+`include"PC.v"
+`include"regfile.v"
+`include"branch.v"
+
+
+
+//decoder 
+/*
+talk ALU controller which type is it, 
+ALL 9 type so need 4 bit      13:10
+reg_write 1 bit               9
+instr_read 1 bit              8
+data_read 1 bit               7
+data_write 1 bit              6
+Branch Ctrl for PC 2 bit      5:4   if==2'b11,mean don't know need other condition
+MUX for ALU src2 1bit         3
+MUX for PC to reg src 1 bit   2
+MUX for RD src 1 bit          1
+MUX for Mem to reg 1 bit      0
+
+total is 14 bit
+*/
+//
+module CPU(
+    input             clk,
+    input             rst,
+    input      [31:0] data_out,
+    input      [31:0] instr_out,
+    output          reg  instr_read,
+    output           reg data_read,
+    output       reg[31:0] instr_addr,
+    output     [31:0] data_addr,
+    output reg [3:0]  data_write,
+    output reg [31:0] data_in
+);
+
+
+wire [13:0] signal;
+wire [31:0] PC_in;
+wire [31:0] PC_out;
+wire [31:0] rs1_data;
+wire [31:0] rs2_data;
+wire [31:0] imm;
+wire [31:0] src2;
+wire Zero;
+wire [31:0] asd;
+wire [31:0] alu_out;
+ wire [31:0] pc_plus_imm;
+wire [31:0] pc_plus4;
+wire [31:0] pc_to_reg;
+wire [31:0] PC_or_ALU_out;
+wire [31:0] rd_data;
+wire [1:0] branch_ctrl_out;
+wire [31:0] final_pc;
+wire [31:0] pc_or_alu_out;
+wire [31:0] mem_out;
+reg delay;
+reg [31:0]tmp;
+
+initial begin
+	assign instr_addr=32'b0;
+$display("qwe");
+end
+
+//assign instr_addr=32'b0;
+
+always@ (negedge clk)begin
+@(posedge clk);
+
+assign instr_read=1;
+end
+
+
+
+///////////////////////////
+//instr_out is input 
+//////////////////////////
+always @(posedge clk)begin
+@(posedge clk);
+
+//$display("sad");
+assign instr_read=0;
+
+end
+
+always@(posedge clk)begin
+	//$display("instr is : %h",instr_addr);
+end
+
+
+//output control signal
+decoder decoder(
+.instr_out(instr_out),
+.control_signal(signal)
+);
+
+always @(posedge clk)begin
+	if(instr_out[6:0]==7'b0000011)//LW
+		assign data_read=1;
+end
+
+//wait for data_in
+always @(posedge clk)begin
+	@(posedge clk);
+end
+
+
+
+////register file
+regfile regfile(
+.clk(clk),
+.rs1_addr(instr_out[19:15]),
+.rs2_addr(instr_out[24:20]),
+.rd_addr(instr_out[11:7]),
+.reg_wrt(signal[9]),
+.rd_data(rd_data),
+.rs1_data(rs1_data),
+.rs2_data(rs2_data)
+);
+
+/////////////////////////////
+//for immediate 
+immgen immgen(
+.instr(instr_out),
+.imm(imm)
+);
+
+///////////////////////////////
+///find pc destination
+//pc+4
+adder add4(
+.a(instr_addr),
+.b(32'd4),
+.c(pc_plus4)
+);
+
+//pc+imm
+adder addimm(
+.a(instr_addr),
+.b(imm),
+.c(pc_plus_imm)
+);
+
+
+//decide pc destination
+mux21 pc2reg(
+.a(pc_plus_imm),
+.b(pc_plus4),
+.c(signal[2]),
+.d(pc_to_reg)
+);
+
+
+//decide imm or rd2 in alu
+mux21 alusrc(
+.a(rs2_data),
+.b(imm),
+.c(signal[3]),
+.d(src2)
+);
+
+
+alu alu(
+.clk(clk),
+.rs1(rs1_data),
+.rs2(src2),
+.alu_control(signal[13:10]),
+.funct3(instr_out[14:12]),
+.funct7(instr_out[31:25]),
+.zero(zero),
+.alu_out(alu_out)
+);
+
+//branch
+branch b(
+.decode_signal(signal[5:4]),
+.zero(zero),
+.b(branch_ctrl_out)
+);
+
+
+//final pc addr
+mux41 branch(
+.a(pc_plus4),
+.b(pc_plus_imm),
+.c(alu_out),
+.s(branch_ctrl_out),
+.d(PC_in)
+);
+
+
+
+
+//find which one should write back to register file
+mux21 reg_data(
+.a(pc_to_reg),
+.b(alu_out),
+.c(signal[1]),
+.d(pc_or_alu_out)
+);
+
+
+
+//data mem
+data_mem data_mem(
+.alu_out(alu_out),
+.rs2_data(rs2_data),
+.mem_read(signal[7]),
+.mem_wrt(signal[6]),
+.data_out(mem_out)
+);
+
+//mem2reg
+mux21 mem2reg(
+.a(mem_out),
+.b(pc_or_alu_out),
+.c(signal[0]),
+.d(rd_data)
+);
+
+
+
+PC pc(
+.clk(clk),
+.rst(rst),
+.PC_in(PC_in),
+.PC_out(instr_addr)
+);
+
+/* Add your design */
+
+
+	//assign instr_addr=PC_in;
+
+
+//instr_addr<=PC_in;
+
+always @(posedge clk)begin
+	
+	//instr_addr<=PC_in;
+$display("PC_in=%h",instr_addr);
+end
+
+
+
+
+always @(rst)begin
+	assign instr_read=0;
+	assign data_read=0; 
+end
+
+
+endmodule

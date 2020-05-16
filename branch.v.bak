@@ -1,0 +1,18 @@
+module branch(decode_signal,zero,b);
+input [1:0] decode_signal;
+input Zero;
+output reg [1:0] b;
+always@(decode_signal or Zero)begin
+if(decode_signal != 2'bll)begin
+	b<=decode_signal;
+
+end else begin
+	if(Zero == 0)begin
+		b <= 0;
+	end else begin
+		b <= 2'b01;
+	end
+end
+end
+
+endmodule

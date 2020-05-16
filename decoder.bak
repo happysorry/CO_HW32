@@ -1,0 +1,2 @@
+modelue decoder(instr_out,control_signal);
+input

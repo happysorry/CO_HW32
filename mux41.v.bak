@@ -1,0 +1,26 @@
+module mux41(a,b,c,d,s);
+input [31:0] a;
+input [31:0] b;
+input [31:0] c;
+input [1:0] s;
+output [31:0] d;
+
+always @(a or b or c or s or d)begin
+	case(s)
+		2'b00:begin 
+			d=a;
+		end
+		2'b01:begin
+			d=b;
+		end
+		2'b10:begin
+			d=c;
+		end
+		default:begin
+			d=32'b0;
+		end
+
+	endcase
+end
+endmodule
+	

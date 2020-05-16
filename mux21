@@ -1,0 +1,17 @@
+module mux21(a,b,c,d);
+input [31:0] a;
+input [31:0] b;
+input c;
+output reg[31:0] d;
+
+always @(a or b or c) begin
+	if(c==0)begin
+		d<=a;
+	end
+	else begin
+		d<=b;
+	end
+$display(%d,d);
+end
+
+endmodule

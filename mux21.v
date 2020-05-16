@@ -1,0 +1,25 @@
+module mux21(a,b,c,d);
+input [31:0] a;
+input [31:0] b;
+input c;
+output reg[31:0] d;
+
+
+
+////////////////////
+//a:input 1
+//b:input 2
+//c:signal
+//d:output
+///////////////////
+always @(a or b or c or d) begin
+	if(!c)begin
+		d<=a;
+	end
+	else begin
+		d<=b;
+	end
+	
+end
+
+endmodule
